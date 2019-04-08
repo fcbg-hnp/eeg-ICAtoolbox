@@ -6,14 +6,13 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 from toolbox import Ui_MainWindow
 import mne
 import mne.channels
 from read import read_sef
 from util import xyz_to_montage, plot_overlay
-import os
-from pathlib import Path
+
 
 class MainWindow(Ui_MainWindow):
 
@@ -110,15 +109,15 @@ class MainWindow(Ui_MainWindow):
 
     def collapse(self):
         """Expand/collapse advanced ica parameters menu"""
-        if self.groupBox_advancedparameters.isChecked() == True:
+        if self.groupBox_advancedparameters.isChecked() is True:
             self.groupBox_advancedparameters.setFixedSize(self.groupBox_advancedparameters.sizeHint())
             self.groupBox_advancedparameters.resize(self.groupBox_advancedparameters.sizeHint())
         else:
-            self.groupBox_advancedparameters.setFixedSize(self.groupBox_advancedparameters.sizeHint().width(),20)
-            self.groupBox_advancedparameters.resize(self.groupBox_advancedparameters.sizeHint().width(),20)
+            self.groupBox_advancedparameters.setFixedSize(self.groupBox_advancedparameters.sizeHint().width(), 20)
+            self.groupBox_advancedparameters.resize(self.groupBox_advancedparameters.sizeHint().width(), 20)
         return()
 
-    #Open file
+    # Open file
     def open_eeg(self):
         """Open EEG file (support -raw.fif and .sef)"""
         try:
@@ -132,7 +131,7 @@ class MainWindow(Ui_MainWindow):
                 self.raw = read_sef(self.fname_eeg)
             self.lineEdit_eegfile.setText(self.fname_eeg)
         except Exception as e:
-            self.messagebox.setText(str(e));
+            self.messagebox.setText(str(e))
             self.messagebox.exec()
         return()
 
@@ -147,10 +146,9 @@ class MainWindow(Ui_MainWindow):
             self.lineEdit_xyz.setText(self.fname_xyz)
             self.valid_inputs()
         except Exception as e:
-            self.messagebox.setText("Unable to read montage from file because of error: " + str(e));
+            self.messagebox.setText("Unable to read montage from file because of error: " + str(e))
             self.messagebox.exec()
         return()
-
 
     def set_montage_from_file(self):
         """Set montage to the one contained in the file"""
@@ -214,7 +212,7 @@ class MainWindow(Ui_MainWindow):
             self.groupBox_setparameters.setEnabled(False)
         return()
 
-    #parameters
+    # Parameters
     def check_parameters(self):
         """Checks if ica parameters are correctly set"""
         if self.ncomponents > self.n_channels:
@@ -232,7 +230,7 @@ class MainWindow(Ui_MainWindow):
 
     def activate_compute_button(self):
         """Enable compute button if validparameters = True"""
-        if self.validparameters == True:
+        if self.validparameters is True:
             self.pushButton_compute.setEnabled(True)
         else:
             self.pushButton_compute.setEnabled(False)
@@ -307,19 +305,21 @@ class MainWindow(Ui_MainWindow):
         try:
             raw = self.raw
             raw.set_montage(self.montage)
-            ica = mne.preprocessing.ICA(n_components=self.ncomponents, method=self.method,
-                      random_state=self.seed, max_iter=self.maxiter,
-                      max_pca_components=self.maxpcacomponents,
-                      n_pca_components=self.npcacomponents)
+            ica = mne.preprocessing.ICA(n_components=self.ncomponents,
+                                        method=self.method,
+                                        random_state=self.seed,
+                                        max_iter=self.maxiter,
+                                        max_pca_components=self.maxpcacomponents,
+                                        n_pca_components=self.npcacomponents)
             picks = mne.pick_types(raw.info, meg=True, eeg=True,
                                    eog=True, exclude='bads')
             print(self.ncomponents, self.method, self.seed, self.maxiter,
-                  self.maxpcacomponents,self.npcacomponents, self.montage, self.raw)
+                  self.maxpcacomponents, self.npcacomponents, self.montage, self.raw)
             ica.fit(raw, picks=picks, decim=1)
             self.ica = ica
             self.computed = True
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e));
+            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
             self.messagebox.exec()
             self.computed = False
         return()
@@ -355,7 +355,7 @@ class MainWindow(Ui_MainWindow):
         try:
             self.ica.plot_sources(self.raw)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e));
+            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
             self.messagebox.exec()
         return()
 
@@ -364,7 +364,7 @@ class MainWindow(Ui_MainWindow):
         try:
             self.ica.plot_components(inst=self.raw)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e));
+            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
             self.messagebox.exec()
         return()
 
@@ -373,7 +373,7 @@ class MainWindow(Ui_MainWindow):
         try:
             plot_overlay(self.raw, self.ica)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e));
+            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
             self.messagebox.exec()
         return()
 
@@ -386,7 +386,7 @@ class MainWindow(Ui_MainWindow):
 
     def update_apply_label(self):
         """Update apply label info"""
-        if self.applied == True:
+        if self.applied is True:
             self.label_apply.setText("Done   " + str(self.nout) + " components rejected")
         else:
             self.label_apply.setText("None")
@@ -412,7 +412,7 @@ class MainWindow(Ui_MainWindow):
 
     def update_save_label(self):
         """Update save label info"""
-        if self.saved == True:
+        if self.saved is True:
             self.label_save.setText("Saved. " + str(self.fsave))
         else:
             self.label_save.setText("None")
