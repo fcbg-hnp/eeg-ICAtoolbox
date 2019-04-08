@@ -22,12 +22,12 @@ docker build -t ica_toolbox .
 ### Using Python
 To launch the app using from your python installation use:
 ```bash
-python ica_gui.py
+python run.py
 ```
 ### Using docker
 
 ### Linux
-First you need to allow docker to acces you screen/
+First you need to allow docker to access you screen/
 ```bash
 sudo xhost +local:docker
 ```
