@@ -202,4 +202,3 @@ class Ui_MainWindow(object):
         self.groupBox_save.setTitle(_translate("MainWindow", "Save"))
         self.pushButton_save.setText(_translate("MainWindow", "Save"))
         self.label_save.setText(_translate("MainWindow", "None"))
-
