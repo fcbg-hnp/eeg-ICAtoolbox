@@ -44,7 +44,7 @@ sudo docker run -ti --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v
 ### Windows
 
 Natively, a Linux based docker image is not able to pop graphic interface on windows host.
-One solution is to install a third party software [Xlaunch](http://www.straightrunning.com/XmingNotes/)  to cast GUI from docker to windows.   After completing the installation , you must start Xlaunch and configure it. Select parameters that best suit you ( or keep default) and make sure to check Disable acces control on the extra settings menu.
+One solution is to install a third party software [Xlaunch](http://www.straightrunning.com/XmingNotes/)  to cast GUI from docker to windows.   After completing the installation , you must start Xlaunch and configure it. Select parameters that best suit you ( or keep default) and make sure to check Disable access control on the extra settings menu.
 Once done, you should be able to see the GUI by using the following command specified
 ```bash
 docker run -e DISPLAY=MY_IP:0.0 icatoolbox
