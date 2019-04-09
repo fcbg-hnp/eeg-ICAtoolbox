@@ -13,8 +13,8 @@ from toolbox import Ui_MainWindow
 import mne
 import mne.channels
 from read import read_sef
-from util import xyz_to_montage, plot_overlay
-
+from util import xyz_to_montage, plot_correlation, plot_overlay, compute_correlation
+import numpy as np
 
 class MainWindow(Ui_MainWindow):
 
@@ -45,7 +45,7 @@ class MainWindow(Ui_MainWindow):
         self.label_maxiter.setToolTip("Maximum number of iterations during ICA fitting. \n If method does not converge after max_iter iteration, it stops and returns current solution. \n If method converge before max_iter, it stops and return the completed solution")
         self.label_randomseed.setToolTip("Random state to initialize ICA estimation for reproducible results.")
         self.label_ncomponents.setToolTip("Controls the number of PCA components from the pre-ICA PCA entering the ICA decomposition.\n Must be < to max_pca_components")
-        self.label_maxpcacomponents.setToolTip("The number of components returned by the pre-ICA PCA decomposition.\n Must be < to the number of channels")
+        self.label_maxpcacomponents.setToolTip("The number of components returned by the pre-ICA PCA decomposition.\n Must be <= to the number of channels")
         self.label_npcacomponents.setToolTip("The number of PCA components used for re-projecting the decomposed data into sensor space. \n Has to be >= n_components and <= max_pca_components.\n If greater than n_components_, the next n_pca_components minus n_components PCA components \n will be added before restoring the sensor space data.")
         return()
 
@@ -90,6 +90,7 @@ class MainWindow(Ui_MainWindow):
         self.pushButton_plotoverlay.clicked.connect(self.plot_overlay)
         self.pushButton_apply.clicked.connect(self.apply)
         self.pushButton_save.clicked.connect(self.save)
+        self.pushButton_plotcorrelationmatrix.clicked.connect(self.plot_correlation_matrix)
         return()
 
     def init_parameters(self):
@@ -382,6 +383,19 @@ class MainWindow(Ui_MainWindow):
             plot_overlay(self.raw, self.ica)
         except Exception as e:
             self.messagebox.setText("Unable to plot overlay because of error: " + str(e))
+            self.messagebox.exec()
+        return()
+
+    def plot_correlation_matrix(self):
+        "Plot correlation_matrix"
+        try:
+            # Simulate data
+            match_templates = np.random.randint(0, 10, (3, self.n_channels))
+            ics = np.random.randint(0, 10, (self.ncomponents, self.n_channels))
+            df = compute_correlation(match_templates, ics)
+            plot_correlation(df)
+        except Exception as e:
+            self.messagebox.setText("Unable to plot correlation matrix because of error: " + str(e))
             self.messagebox.exec()
         return()
 
