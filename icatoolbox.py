@@ -7,6 +7,8 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt
 from toolbox import Ui_MainWindow
 import mne
 import mne.channels
@@ -125,11 +127,13 @@ class MainWindow(Ui_MainWindow):
             self.Raw = None
             filter = "Raw fif(*-raw.fif);;Raw sef (*.sef)"
             self.fname_eeg, self.ext_eeg = self.Openfile_eeg.getOpenFileName(caption='Open file', filter=filter)
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             if self.ext_eeg == "Raw fif(*-raw.fif)":
                 self.raw = mne.io.read_raw_fif(self.fname_eeg, preload=True)
             elif self.ext_eeg == "Raw sef (*.sef)":
                 self.raw = read_sef(self.fname_eeg)
             self.lineEdit_eegfile.setText(self.fname_eeg)
+            QApplication.restoreOverrideCursor()
         except Exception as e:
             self.messagebox.setText(str(e))
             self.messagebox.exec()
@@ -153,8 +157,10 @@ class MainWindow(Ui_MainWindow):
     def set_montage_from_file(self):
         """Set montage to the one contained in the file"""
         self.reset_variables()
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.montage = xyz_to_montage(self.fname_xyz)
-        QtWidgets.QApplication.processEvents()
+        QApplication.restoreOverrideCursor()
+        QApplication.processEvents()
         self.valid_inputs()
         return()
 
@@ -334,6 +340,7 @@ class MainWindow(Ui_MainWindow):
 
     def compute(self):
         """Compute ica and update GUI"""
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.applied = False
         self.saved = False
         self.clean_raw = None
@@ -343,11 +350,12 @@ class MainWindow(Ui_MainWindow):
         self.activate_groupbox_apply()
         self.activate_groupbox_save()
         self.label_compute.setText("Computing... This may take a while")
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
         self.compute_ica()
         self.update_compute_label()
         self.activate_groupbox_plot()
         self.activate_groupbox_apply()
+        QApplication.restoreOverrideCursor()
         return()
 
     def plot_sources(self):
@@ -394,13 +402,16 @@ class MainWindow(Ui_MainWindow):
 
     def apply(self):
         """Apply ica and update GUI"""
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.label_apply.setText("Computing... This may take a while")
         self.nout = len(self.ica.exclude)
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
         self.apply_ica()
         self.applied = True
         self.update_apply_label()
         self.activate_groupbox_save()
+        QApplication.restoreOverrideCursor()
+        return()
 
     def activate_groupbox_save(self):
         """Enable save groupbox if ica is applied"""
@@ -416,7 +427,7 @@ class MainWindow(Ui_MainWindow):
             self.label_save.setText("Saved. " + str(self.fsave))
         else:
             self.label_save.setText("None")
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
         return()
 
     def generate_fname(self):
@@ -428,14 +439,16 @@ class MainWindow(Ui_MainWindow):
         self.generate_fname()
         try:
             self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-raw.fif"), filter="*-raw.fif")[0]
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             self.clean_raw.save(self.save_name, overwrite=True)
             self.saved = True
             self.label_save.setText("Saved. " + str(self.save_name))
-            QtWidgets.QApplication.processEvents()
+            QApplication.processEvents()
+            QApplication.restoreOverrideCursor()
         except Exception as e:
             self.label_save.setText(str(e))
             self.saved = False
             self.label_save.setText(str(e))
-            QtWidgets.QApplication.processEvents()
+            QApplication.processEvents()
 
         return()
