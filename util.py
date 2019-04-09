@@ -6,6 +6,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from mne.channels import Montage
 
+def compute_head_pos(montage):
+    pos = montage.get_pos2d()
+    scale = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
+    center = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
+    head_pos = {'scale': scale, 'center': center}
+    return(head_pos)
+
 
 def xyz_to_montage(path):
     """Convert xyz positions to a mne montage type"""

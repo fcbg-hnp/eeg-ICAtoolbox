@@ -13,7 +13,7 @@ from toolbox import Ui_MainWindow
 import mne
 import mne.channels
 from read import read_sef
-from util import xyz_to_montage, plot_correlation, plot_overlay, compute_correlation
+from util import xyz_to_montage, plot_correlation, plot_overlay, compute_correlation, compute_head_pos
 import numpy as np
 
 class MainWindow(Ui_MainWindow):
@@ -26,6 +26,7 @@ class MainWindow(Ui_MainWindow):
         self.raw = None
         self.n_channels = None
         self.montage = mne.channels.read_montage("standard_1005")
+        self.head_pos = compute_head_pos(self.montage)
         self.groupBox_advancedparameters.setChecked(False)
         self.collapse()
         self.Openfile_eeg = QtWidgets.QFileDialog(caption='Open file')
@@ -160,6 +161,7 @@ class MainWindow(Ui_MainWindow):
         self.reset_variables()
         QApplication.setOverrideCursor(Qt.WaitCursor)
         self.montage = xyz_to_montage(self.fname_xyz)
+        self.head_pos = compute_head_pos(self.montage)
         QApplication.restoreOverrideCursor()
         QApplication.processEvents()
         self.valid_inputs()
@@ -172,9 +174,11 @@ class MainWindow(Ui_MainWindow):
             self.pushButton_openxz.setEnabled(False)
             self.lineEdit_xyz.setEnabled(False)
             self.montage = mne.channels.read_montage(montage)
+            self.head_pos = compute_head_pos(self.montage)
             self.lineEdit_xyz.setText("")
             self.fname_xyz = None
             self.ext_xyz = None
+
         else:
             self.pushButton_openxz.setEnabled(True)
             self.lineEdit_xyz.setEnabled(True)
@@ -371,11 +375,6 @@ class MainWindow(Ui_MainWindow):
     def plot_topomaps(self):
         """Plot topomaps"""
         try:
-            pos = self.montage.get_pos2d()
-            print(self.montage.ch_names)
-            scale = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
-            center = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
-            self.head_pos = {'scale': scale, 'center': center}
             self.ica.plot_components(inst=self.raw, head_pos=self.head_pos)
         except Exception as e:
             self.messagebox.setText("Unable to plot components because of error: " + str(e))
