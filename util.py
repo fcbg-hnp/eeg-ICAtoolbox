@@ -1,11 +1,14 @@
 import numpy as np
+import scipy
+import pandas as pd
 import mne
+import seaborn as sns
+import matplotlib.pyplot as plt
 from mne.channels import Montage
 
 
 def xyz_to_montage(path):
     """Convert xyz positions to a mne montage type"""
-
     n = int(open(path).readline().split(' ')[0])
     coord = np.loadtxt(path, skiprows=1, usecols=(0, 1, 2), max_rows=n)
     names = np.loadtxt(path, skiprows=1, usecols=3, max_rows=n, dtype=np.dtype(str)).tolist()
@@ -49,12 +52,35 @@ def find_chnames_in_template(ch_names, template_names):
 
 
 def construct__template_from_montage(Index, template_values):
-    v = template_values[Index]
-    v = v / np.linalg.norm(v)
-    return(v)
+    """Extract a template corresponding to the given indexes"""
+    match_template = template_values[Index]
+    match_template = match_template / np.linalg.norm(match_template)
+    return(match_template)
 
 
-Index = [2, 9]
-template_values = np.arange(0, 10, 1)
-v = construct__template_from_montage(Index, template_values)
-print(v)
+def compute_correlation(match_templates, ics):
+    Templates_names = []
+    Ics_names = []
+    Correlation = []
+    for t, temp in enumerate(match_templates):
+        for i, ic in enumerate(ics):
+            Templates_names.append("template " + str(t))
+            Ics_names.append("ic " + str(i))
+            pearson = scipy.stats.pearsonr(temp, ic)[0]
+            Correlation.append(pearson)
+    data = {'Templates_names': Templates_names, 'Ics_names': Ics_names, 'correlation': Correlation}
+    df = pd.DataFrame(data)
+    return(df)
+
+
+def plot_correlation_matrix(df):
+    df = df.pivot("Templates_names", "Ics_names", "correlation")
+    ax = sns.heatmap(df, linewidths=.5,  annot=True)
+    plt.show()
+    return()
+
+
+match_templates = np.random.randint(0, 10, (3, 100))
+ics = np.random.randint(0, 10, (12, 100))
+df = compute_correlation(match_templates, ics)
+plot_correlation_matrix(df)
