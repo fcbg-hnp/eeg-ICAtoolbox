@@ -371,7 +371,12 @@ class MainWindow(Ui_MainWindow):
     def plot_topomaps(self):
         """Plot topomaps"""
         try:
-            self.ica.plot_components(inst=self.raw)
+            pos = self.montage.get_pos2d()
+            print(self.montage.ch_names)
+            scale = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
+            center = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
+            self.head_pos = {'scale': scale, 'center': center}
+            self.ica.plot_components(inst=self.raw, head_pos=self.head_pos)
         except Exception as e:
             self.messagebox.setText("Unable to plot components because of error: " + str(e))
             self.messagebox.exec()
