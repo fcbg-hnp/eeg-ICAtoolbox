@@ -14,6 +14,7 @@ import mne
 import mne.channels
 from read import read_sef
 from util import xyz_to_montage, plot_correlation, plot_overlay, compute_correlation, compute_head_pos, find_chnames_in_template
+from mne.channels.layout import _find_topomap_coords
 import numpy as np
 
 class MainWindow(Ui_MainWindow):
@@ -403,6 +404,7 @@ class MainWindow(Ui_MainWindow):
             extracted_names = np.array(raw.info["ch_names"])[picks]
             indices, _ = find_chnames_in_template(extracted_names, self.montage.ch_names)
             pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(raw.info["ch_names"]))])
+            pos = _find_topomap_coords(raw.info,picks)
             plot_correlation(df, match_templates, pos)
         except Exception as e:
             self.messagebox.setText("Unable to plot correlation matrix because of error: " + str(e))
