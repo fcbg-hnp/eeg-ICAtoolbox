@@ -31,3 +31,18 @@ def plot_overlay(raw, ica):
     raw.info['bads'] = ["before"]
     raw.plot(scalings="auto", n_channels=2, butterfly=True, block=True, bad_color=(1, 0, 0))
     return()
+
+
+def find_chnames_in_template(ch_names, template_names):
+    """Find ch_names in template and return index and names not found in template"""
+    ch_names = [name.lower() for name in ch_names]
+    template_names = [name.lower() for name in template_names]
+    Index = []
+    NotFound = []
+    for name in ch_names:
+        try:
+            idx = template_names.index(name)
+            Index.append(idx)
+        except Exception:
+            NotFound.append(name)
+    return(Index, NotFound)
