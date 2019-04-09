@@ -73,14 +73,14 @@ def compute_correlation(match_templates, ics):
     return(df)
 
 
-def plot_correlation_matrix(df):
+def plot_correlation(df):
     df = df.pivot("Templates_names", "Ics_names", "correlation")
     ax = sns.heatmap(df, linewidths=.5,  annot=True)
     plt.show()
     return()
 
 
-match_templates = np.random.randint(0, 10, (3, 100))
+"""match_templates = np.random.randint(0, 10, (3, 100))
 ics = np.random.randint(0, 10, (12, 100))
 df = compute_correlation(match_templates, ics)
-plot_correlation_matrix(df)
+plot_correlation_matrix(df)"""
