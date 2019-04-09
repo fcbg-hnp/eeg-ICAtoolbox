@@ -353,9 +353,9 @@ class MainWindow(Ui_MainWindow):
     def plot_sources(self):
         """Plot sources"""
         try:
-            self.ica.plot_sources(self.raw)
+            self.ica.plot_sources(self.raw, block=True)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
+            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
             self.messagebox.exec()
         return()
 
@@ -364,7 +364,7 @@ class MainWindow(Ui_MainWindow):
         try:
             self.ica.plot_components(inst=self.raw)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
+            self.messagebox.setText("Unable to plot components because of error: " + str(e))
             self.messagebox.exec()
         return()
 
@@ -373,7 +373,7 @@ class MainWindow(Ui_MainWindow):
         try:
             plot_overlay(self.raw, self.ica)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
+            self.messagebox.setText("Unable to plot overlay because of error: " + str(e))
             self.messagebox.exec()
         return()
 
