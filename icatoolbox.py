@@ -314,7 +314,7 @@ class MainWindow(Ui_MainWindow):
     def compute_ica(self):
         """Compute ica"""
         try:
-            raw = self.raw
+            raw = self.raw.copy()
             raw.set_montage(self.montage)
             ica = mne.preprocessing.ICA(n_components=self.ncomponents,
                                         method=self.method,
@@ -374,7 +374,7 @@ class MainWindow(Ui_MainWindow):
     def plot_topomaps(self):
         """Plot topomaps"""
         try:
-            self.ica.plot_components(inst=self.raw, head_pos=self.head_pos)
+            self.ica.plot_components(inst=self.raw)
         except Exception as e:
             self.messagebox.setText("Unable to plot components because of error: " + str(e))
             self.messagebox.exec()
@@ -383,7 +383,9 @@ class MainWindow(Ui_MainWindow):
     def plot_overlay(self):
         "Plot overlay"
         try:
-            plot_overlay(self.raw, self.ica)
+            raw = self.raw.copy()
+            raw.set_montage(self.montage)
+            plot_overlay(raw, self.ica)
         except Exception as e:
             self.messagebox.setText("Unable to plot overlay because of error: " + str(e))
             self.messagebox.exec()
@@ -392,14 +394,15 @@ class MainWindow(Ui_MainWindow):
     def plot_correlation_matrix(self):
         "Plot correlation_matrix"
         try:
-            # Simulate data
+            raw = self.raw.copy()
+            raw.set_montage(self.montage)
             match_templates = self.ica.get_components().T[[0, 5, -1]]
             ics = self.ica.get_components().T
             df = compute_correlation(match_templates, ics)
-            picks = mne.pick_types(self.raw.info, meg=True, eeg=True)
-            extracted_names = np.array(self.raw.info["ch_names"])[picks]
+            picks = mne.pick_types(raw.info, meg=True, eeg=True)
+            extracted_names = np.array(raw.info["ch_names"])[picks]
             indices, _ = find_chnames_in_template(extracted_names, self.montage.ch_names)
-            pos = self.montage.pos[indices, :-1]
+            pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(raw.info["ch_names"]))])
             plot_correlation(df, match_templates, pos)
         except Exception as e:
             self.messagebox.setText("Unable to plot correlation matrix because of error: " + str(e))

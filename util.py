@@ -90,9 +90,8 @@ def plot_correlation(df, match_templates, pos, head_pos=None):
     axes = []
     for t, temp in enumerate(match_templates):
         axes.append(fig.add_subplot(gs[0:5, t]))
-        axes[-1].set_title(df["Templates_names"].tolist()[t])
-        print(df["Templates_names"].tolist()[t])
-        _plot_topomap(temp, pos, axes=axes[-1], head_pos=head_pos, show=False, vmin=-1, vmax=1, outlines="head")
+        axes[-1].set_title("template " + str(t).zfill(3))
+        _plot_topomap(temp, pos, axes=axes[-1], head_pos=head_pos, show=False, vmin=temp.min(), vmax=temp.max(), outlines="head")
 
     ax_colorbar = fig.add_subplot(gs[5, :])
     ax_matrix = fig.add_subplot(gs[7:11, :])
