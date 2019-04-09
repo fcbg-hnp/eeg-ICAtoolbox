@@ -46,3 +46,15 @@ def find_chnames_in_template(ch_names, template_names):
         except Exception:
             NotFound.append(name)
     return(Index, NotFound)
+
+
+def construct__template_from_montage(Index, template_values):
+    v = template_values[Index]
+    v = v / np.linalg.norm(v)
+    return(v)
+
+
+Index = [2, 9]
+template_values = np.arange(0, 10, 1)
+v = construct__template_from_montage(Index, template_values)
+print(v)
