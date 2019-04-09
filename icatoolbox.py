@@ -13,7 +13,7 @@ from toolbox import Ui_MainWindow
 import mne
 import mne.channels
 from read import read_sef
-from util import xyz_to_montage, plot_correlation, plot_overlay, compute_correlation, compute_head_pos
+from util import xyz_to_montage, plot_correlation, plot_overlay, compute_correlation, compute_head_pos, find_chnames_in_template
 import numpy as np
 
 class MainWindow(Ui_MainWindow):
@@ -146,7 +146,6 @@ class MainWindow(Ui_MainWindow):
         try:
             self.Openfile_xyz = QtWidgets.QFileDialog(caption='Open file')
             self.fname_xyz, self.ext_xyz = self.Openfile_xyz.getOpenFileName(caption='Open file', filter="*.xyz")
-            print(self.ext_xyz)
             if self.ext_xyz == "*.xyz":
                 self.set_montage_from_file()
             self.lineEdit_xyz.setText(self.fname_xyz)
@@ -183,6 +182,7 @@ class MainWindow(Ui_MainWindow):
             self.pushButton_openxz.setEnabled(True)
             self.lineEdit_xyz.setEnabled(True)
             self.montage = None
+            self.head_po = None
             self.lineEdit_xyz.setText("")
             self.fname_xyz = None
             self.ext_xyz = None
@@ -322,8 +322,7 @@ class MainWindow(Ui_MainWindow):
                                         max_iter=self.maxiter,
                                         max_pca_components=self.maxpcacomponents,
                                         n_pca_components=self.npcacomponents)
-            picks = mne.pick_types(raw.info, meg=True, eeg=True,
-                                   eog=True, exclude='bads')
+            picks = mne.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
             print(self.ncomponents, self.method, self.seed, self.maxiter,
                   self.maxpcacomponents, self.npcacomponents, self.montage, self.raw)
             ica.fit(raw, picks=picks, decim=1)
@@ -394,10 +393,14 @@ class MainWindow(Ui_MainWindow):
         "Plot correlation_matrix"
         try:
             # Simulate data
-            match_templates = np.random.randint(0, 10, (3, self.n_channels))
-            ics = np.random.randint(0, 10, (self.ncomponents, self.n_channels))
+            match_templates = self.ica.get_components().T[[0, 5, -1]]
+            ics = self.ica.get_components().T
             df = compute_correlation(match_templates, ics)
-            plot_correlation(df)
+            picks = mne.pick_types(self.raw.info, meg=True, eeg=True)
+            extracted_names = np.array(self.raw.info["ch_names"])[picks]
+            indices, _ = find_chnames_in_template(extracted_names, self.montage.ch_names)
+            pos = self.montage.pos[indices, :-1]
+            plot_correlation(df, match_templates, pos)
         except Exception as e:
             self.messagebox.setText("Unable to plot correlation matrix because of error: " + str(e))
             self.messagebox.exec()

@@ -5,6 +5,9 @@ import mne
 import seaborn as sns
 import matplotlib.pyplot as plt
 from mne.channels import Montage
+from mne.viz.topomap import _plot_topomap
+from matplotlib.gridspec import GridSpec
+
 
 def compute_head_pos(montage):
     pos = montage.get_pos2d()
@@ -71,8 +74,8 @@ def compute_correlation(match_templates, ics):
     Correlation = []
     for t, temp in enumerate(match_templates):
         for i, ic in enumerate(ics):
-            Templates_names.append("template " + str(t))
-            Ics_names.append("ic " + str(i))
+            Templates_names.append("template " + str(t).zfill(3))
+            Ics_names.append("ic " + str(i).zfill(3))
             pearson = scipy.stats.pearsonr(temp, ic)[0]
             Correlation.append(pearson)
     data = {'Templates_names': Templates_names, 'Ics_names': Ics_names, 'correlation': Correlation}
@@ -80,10 +83,24 @@ def compute_correlation(match_templates, ics):
     return(df)
 
 
-def plot_correlation(df):
-    df = df.pivot("Templates_names", "Ics_names", "correlation")
-    ax = sns.heatmap(df, linewidths=.5,  annot=True)
-    plt.show()
+def plot_correlation(df, match_templates, pos, head_pos=None):
+    dfp = df.pivot("Templates_names", "Ics_names", "correlation")
+    fig = plt.figure()
+    gs = GridSpec(11, len(match_templates))
+    axes = []
+    for t, temp in enumerate(match_templates):
+        axes.append(fig.add_subplot(gs[0:5, t]))
+        axes[-1].set_title(df["Templates_names"].tolist()[t])
+        print(df["Templates_names"].tolist()[t])
+        _plot_topomap(temp, pos, axes=axes[-1], head_pos=head_pos, show=False, vmin=-1, vmax=1, outlines="head")
+
+    ax_colorbar = fig.add_subplot(gs[5, :])
+    ax_matrix = fig.add_subplot(gs[7:11, :])
+    sns.heatmap(dfp, linewidths=0.1,  annot=False, ax=ax_matrix, cmap="YlOrBr", vmin=-1, vmax=1, square=False, xticklabels=True, yticklabels=True, cbar_kws={"orientation" : 'horizontal'}, cbar_ax=ax_colorbar)
+    ax_matrix.set_ylabel('')
+    ax_matrix.set_xlabel('')
+    plt.subplots_adjust(left=0.17, bottom=0.13, right=None, top=None, wspace=None, hspace=None)
+    plt.show(fig)
     return()
 
 
