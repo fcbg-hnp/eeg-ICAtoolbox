@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
-
-# Form implementation generated from reading ui file '.\icatoolbox_v01.ui'
-#
-# Created by: PyQt5 UI code generator 5.11.3
-#
-# WARNING! All changes made in this file will be lost!
-
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 from toolbox import Ui_MainWindow
+
+import numpy as np
 import mne
 import mne.channels
-from read import read_sef
-from util import xyz_to_montage, plot_correlation, plot_overlay, compute_correlation, compute_head_pos, find_chnames_in_template
 from mne.channels.layout import _find_topomap_coords
-import numpy as np
+
+from read import read_sef
+from util import xyz_to_montage, plot_correlation, plot_overlay,\
+                 compute_correlation, compute_head_pos, \
+                 extract_common_components, find_common_channels
+
 
 class MainWindow(Ui_MainWindow):
 
@@ -394,21 +392,18 @@ class MainWindow(Ui_MainWindow):
 
     def plot_correlation_matrix(self):
         "Plot correlation_matrix"
-        try:
-            raw = self.raw.copy()
-            raw.set_montage(self.montage)
-            match_templates = self.ica.get_components().T[[0, 5, -1]]
-            ics = self.ica.get_components().T
-            df = compute_correlation(match_templates, ics)
-            picks = mne.pick_types(raw.info, meg=True, eeg=True)
-            extracted_names = np.array(raw.info["ch_names"])[picks]
-            indices, _ = find_chnames_in_template(extracted_names, self.montage.ch_names)
-            pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(raw.info["ch_names"]))])
-            pos = _find_topomap_coords(raw.info,picks)
-            plot_correlation(df, match_templates, pos)
-        except Exception as e:
-            self.messagebox.setText("Unable to plot correlation matrix because of error: " + str(e))
-            self.messagebox.exec()
+        raw = self.raw.copy()
+        ch_names = raw.info["ch_names"]
+        raw.set_montage(self.montage)
+        ica_template = mne.preprocessing.read_ica('template-ica.fif')
+        common = find_common_channels(ica_template, self.ica)
+
+        components_template, components_ics = extract_common_components(ica_template, self.ica)
+        templates = components_template[0:1]
+        df = compute_correlation(templates, components_ics)
+        pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(ch_names)) if ch_names[i].lower() in common])
+        quality = len(common) / len(ch_names)
+        plot_correlation(df, templates, pos, quality)
         return()
 
     def apply_ica(self):
@@ -421,7 +416,7 @@ class MainWindow(Ui_MainWindow):
     def update_apply_label(self):
         """Update apply label info"""
         if self.applied is True:
-            self.label_apply.setText("Done   " + str(self.nout) + " components rejected")
+            self.label_apply.setText("Done " + str(self.nout) + " components rejected")
         else:
             self.label_apply.setText("None")
         return()

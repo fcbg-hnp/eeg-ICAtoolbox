@@ -21,8 +21,11 @@ def xyz_to_montage(path):
     """Convert xyz positions to a mne montage type"""
     n = int(open(path).readline().split(' ')[0])
     coord = np.loadtxt(path, skiprows=1, usecols=(0, 1, 2), max_rows=n)
-    names = np.loadtxt(path, skiprows=1, usecols=3, max_rows=n, dtype=np.dtype(str)).tolist()
-    return Montage(coord, names, 'standard_1005', selection=[i for i in range(n)])
+    names = np.loadtxt(path, skiprows=1, usecols=3,
+                       max_rows=n, dtype=np.dtype(str)).tolist()
+    montage = Montage(coord, names, 'standard_1005',
+                      selection=[i for i in range(n)])
+    return(montage)
 
 
 def compute_gfp(raw):
@@ -42,23 +45,35 @@ def plot_overlay(raw, ica):
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = mne.io.RawArray(data, info)
     raw.info['bads'] = ["before"]
-    raw.plot(scalings="auto", n_channels=2, butterfly=True, block=True, bad_color=(1, 0, 0))
+    raw.plot(scalings="auto", n_channels=2, butterfly=True,
+             block=True, bad_color=(1, 0, 0))
     return()
 
 
-def find_chnames_in_template(ch_names, template_names):
-    """Find ch_names in template and return index and names not found in template"""
-    ch_names = [name.lower() for name in ch_names]
-    template_names = [name.lower() for name in template_names]
+def find_common_channels(ica_a, ica_b):
+    """Find ch_names shared between 2 ica objects"""
+    ch_names_a = [ch.lower() for ch in ica_a.ch_names]
+    ch_names_b = [ch.lower() for ch in ica_b.ch_names]
+    common = [x for x in ch_names_a if x in ch_names_b]
+    return(common)
+
+
+def find_index_by_name(names, ica):
+    ch_names = [ch.lower() for ch in ica.ch_names]
     Index = []
-    NotFound = []
-    for name in ch_names:
-        try:
-            idx = template_names.index(name)
-            Index.append(idx)
-        except Exception:
-            NotFound.append(name)
-    return(Index, NotFound)
+    for name in names:
+        idx = ch_names.index(name)
+        Index.append(idx)
+    return(Index)
+
+
+def extract_common_components(ica_a, ica_b):
+    common = find_common_channels(ica_a, ica_b)
+    idx_a = find_index_by_name(common, ica_a)
+    idx_b = find_index_by_name(common, ica_b)
+    components_a = ica_a.get_components()[idx_a]
+    components_b = ica_b.get_components()[idx_b]
+    return(components_a.T, components_b.T)
 
 
 def construct__template_from_montage(Index, template_values):
@@ -78,12 +93,14 @@ def compute_correlation(match_templates, ics):
             Ics_names.append("ic " + str(i).zfill(3))
             pearson = scipy.stats.pearsonr(temp, ic)[0]
             Correlation.append(pearson)
-    data = {'Templates_names': Templates_names, 'Ics_names': Ics_names, 'correlation': Correlation}
+    data = {'Templates_names': Templates_names,
+            'Ics_names': Ics_names,
+            'correlation': Correlation}
     df = pd.DataFrame(data)
     return(df)
 
 
-def plot_correlation(df, match_templates, pos, head_pos=None):
+def plot_correlation(df, match_templates, pos, quality, head_pos=None):
     dfp = df.pivot("Templates_names", "Ics_names", "correlation")
     fig = plt.figure()
     gs = GridSpec(11, len(match_templates))
@@ -91,19 +108,17 @@ def plot_correlation(df, match_templates, pos, head_pos=None):
     for t, temp in enumerate(match_templates):
         axes.append(fig.add_subplot(gs[0:5, t]))
         axes[-1].set_title("template " + str(t).zfill(3))
-        _plot_topomap(temp, pos, axes=axes[-1], head_pos=head_pos, show=False, vmin=temp.min(), vmax=temp.max(), outlines="head")
-
+        _plot_topomap(temp, pos, axes=axes[-1], head_pos=head_pos, show=False,
+                      vmin=temp.min(), vmax=temp.max(), outlines="head")
     ax_colorbar = fig.add_subplot(gs[5, :])
     ax_matrix = fig.add_subplot(gs[7:11, :])
-    sns.heatmap(dfp, linewidths=0.1,  annot=False, ax=ax_matrix, cmap="YlOrBr", vmin=-1, vmax=1, square=False, xticklabels=True, yticklabels=True, cbar_kws={"orientation" : 'horizontal'}, cbar_ax=ax_colorbar)
+    sns.heatmap(dfp, linewidths=0.1, annot=False, ax=ax_matrix, cmap="PuOr",
+                vmin=-1, vmax=1, square=False, cbar_ax=ax_colorbar,
+                cbar_kws={"orientation" :'horizontal'})
     ax_matrix.set_ylabel('')
-    ax_matrix.set_xlabel('')
-    plt.subplots_adjust(left=0.17, bottom=0.13, right=None, top=None, wspace=None, hspace=None)
+    ax_matrix.set_xlabel("Comparaison Quality: " + str(quality*100) + "%")
+    plt.subplots_adjust(left=0.17, bottom=0.15,
+                        right=None, top=None,
+                        wspace=None, hspace=None)
     plt.show(fig)
     return()
-
-
-"""match_templates = np.random.randint(0, 10, (3, 100))
-ics = np.random.randint(0, 10, (12, 100))
-df = compute_correlation(match_templates, ics)
-plot_correlation_matrix(df)"""
