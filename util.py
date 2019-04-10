@@ -92,6 +92,7 @@ def compute_correlation(match_templates, ics):
             Templates_names.append("template " + str(t).zfill(3))
             Ics_names.append("ic " + str(i).zfill(3))
             pearson = scipy.stats.pearsonr(temp, ic)[0]
+            pearson = np.abs(pearson)
             Correlation.append(pearson)
     data = {'Templates_names': Templates_names,
             'Ics_names': Ics_names,
@@ -112,8 +113,8 @@ def plot_correlation(df, match_templates, pos, quality, head_pos=None):
                       vmin=temp.min(), vmax=temp.max(), outlines="head")
     ax_colorbar = fig.add_subplot(gs[5, :])
     ax_matrix = fig.add_subplot(gs[7:11, :])
-    sns.heatmap(dfp, linewidths=0.1, annot=False, ax=ax_matrix, cmap="PuOr",
-                vmin=-1, vmax=1, square=False, cbar_ax=ax_colorbar,
+    sns.heatmap(dfp, linewidths=0.1, annot=False, ax=ax_matrix, cmap="YlGnBu",
+                vmin=0, vmax=1, square=False, cbar_ax=ax_colorbar,
                 cbar_kws={"orientation" :'horizontal'})
     ax_matrix.set_ylabel('')
     ax_matrix.set_xlabel("Comparaison Quality: " + str(quality*100) + "%")
