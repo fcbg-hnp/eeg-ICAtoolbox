@@ -399,9 +399,10 @@ class MainWindow(Ui_MainWindow):
         common = find_common_channels(ica_template, self.ica)
 
         components_template, components_ics = extract_common_components(ica_template, self.ica)
-        templates = components_template[0:1]
+        templates = components_template[[0, 7]]
         df = compute_correlation(templates, components_ics)
-        pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(ch_names)) if ch_names[i].lower() in common])
+        pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
+        #pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(ch_names)) if ch_names[i].lower() in common])
         quality = len(common) / len(ch_names)
         plot_correlation(df, templates, pos, quality)
         return()
