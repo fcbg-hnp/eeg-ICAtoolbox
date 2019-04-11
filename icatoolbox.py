@@ -463,13 +463,21 @@ class MainWindow(Ui_MainWindow):
 
     def generate_fname(self):
         """Generate default saving file name based o input file"""
-        self.save_name = self.fname_eeg[0:-len(self.ext_eeg)]
+        if self.ext_eeg == "Raw fif(*-raw.fif)":
+            self.save_name = self.fname_eeg[0:-8]
+        elif self.ext_eeg == "Epochs fif(*-epo.fif)":
+            self.save_name = self.fname_eeg[0:-8]
+        elif self.ext_eeg == "Raw sef (*.sef)":
+            self.save_name = self.fname_eeg[0:-4]
 
     def save(self):
         """Save file"""
         self.generate_fname()
         try:
-            self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-raw.fif"), filter="*-raw.fif")[0]
+            if self.ext_eeg == "Raw fif(*-raw.fif)" or self.ext_eeg == "Raw sef (*.sef)":
+                self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-raw.fif"), filter="*-raw.fif")[0]
+            elif self.ext_eeg == "Epochs fif(*-epo.fif)":
+                self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-epo.fif"), filter="*-epo.fif")[0]
             QApplication.setOverrideCursor(Qt.WaitCursor)
             self.clean_raw.save(self.save_name, overwrite=True)
             self.saved = True
