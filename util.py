@@ -45,7 +45,8 @@ def plot_overlay(raw, ica):
         sfreq = raw.info["sfreq"]
         ch_types = ['eeg', 'eeg']
         ch_names = ['before', 'after']
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq,
+                               ch_types=ch_types)
         raw.info['bads'] = ["before"]
         # Data
         gfp_raw_signal = compute_gfp_raw(raw)
@@ -53,8 +54,20 @@ def plot_overlay(raw, ica):
         data = [gfp_raw_signal, gfp_raw_applied_signal]
         # Raw
         raw = mne.io.RawArray(data, info)
-        raw.plot(scalings="auto", n_channels=2, butterfly=True, decim=1,
-                 block=True, bad_color=(1, 0, 0))
+        fig, ax = plt.subplots()
+        ax.plot(raw.times, gfp_raw_signal, 'r', label="before")
+        ax.plot(raw.times, gfp_raw_applied_signal, 'black', label="after")
+        min = np.abs(gfp_raw_signal.min())
+        max = np.abs(gfp_raw_signal.max())
+        ylim = np.max([min, max])
+        ax.set_ylim(-ylim, ylim)
+        ax.set_xlim(0, 10)
+        ax.set_xlabel("time(s)")
+        ax.set_yticklabels([])
+        ax.set_title("""Global field power before (red)
+                        and after (black) source rejection""")
+        ax.legend(loc=8, ncol=2, bbox_to_anchor=(0., 0., 1, 1))
+        plt.show(fig)
     elif type(raw) == mne.epochs.EpochsFIF:
         epochs = raw.copy()
         ica.apply(epochs)
@@ -62,23 +75,48 @@ def plot_overlay(raw, ica):
         sfreq = epochs.info["sfreq"]
         ch_types = ['eeg', 'eeg']
         ch_names = ['before', 'after']
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq,
+                               ch_types=ch_types)
         # Data
         gfp_epochs_signal = compute_gfp_epoch(raw)
-        print(gfp_epochs_signal.shape)
         gfp_epochs_applied_signal = compute_gfp_epoch(epochs)
-        print(gfp_epochs_applied_signal.shape)
         data = np.array([gfp_epochs_signal.T, gfp_epochs_applied_signal.T]).T
         data = np.swapaxes(data, 1, 2)
-        print(data.shape)
         # Epochs
-        events = epochs.events
+        times = epochs.times
         tmin = epochs.tmin
-        event_id = epochs.event_id
-        epochsplot = mne.EpochsArray(data, info, events, tmin, event_id)
-        epochsplot.info['bads'] = ["before"]
-        epochsplot.plot(scalings="auto", n_channels=2, decim=1,
-                        block=True)
+        # Figure
+        fig, ax = plt.subplots()
+        duration = times[-1] - times[0]
+        offset = 0
+        if tmin < 0:
+            offset = - tmin
+        # initialie to have oly 1 label
+        ep = 0
+        ep_data = data[ep]
+        ep_times = offset + times + ep*duration
+        ax.plot(ep_times, ep_data[0], "r", label="before")
+        ax.plot(ep_times, ep_data[1], "black", label="after")
+        ax.axvline(x=offset + ep*duration, color="green")
+        ax.axvline(x=ep*duration, color="black", linestyle="--")
+        # then l0op over all epochs
+        for ep in range(1, len(epochs)):
+            ep_data = data[ep]
+            ep_times = offset + times + ep*duration
+            ax.plot(ep_times, ep_data[0], "r")
+            ax.plot(ep_times, ep_data[1], "black")
+            ax.axvline(x=offset + ep*duration, color="green")
+            ax.axvline(x=ep*duration, color="black", linestyle="--")
+        min = np.abs(data.min())
+        max = np.abs(data.max())
+        ylim = np.max([min, max])
+        ax.set_ylim(-ylim, ylim)
+        ax.set_xlim(0, np.around(10/duration)*duration)
+        ax.set_xlabel("time(s)")
+        ax.set_yticklabels([])
+        ax.set_title("""Global field power before (red) and after (black) source rejection""")
+        ax.legend(loc=8, ncol=2, bbox_to_anchor=(0., 0., 1, 1))
+        plt.show(fig)
     return()
 
 

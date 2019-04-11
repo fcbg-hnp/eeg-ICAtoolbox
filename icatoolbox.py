@@ -382,13 +382,9 @@ class MainWindow(Ui_MainWindow):
 
     def plot_overlay(self):
         "Plot overlay"
-        try:
-            raw = self.raw.copy()
-            raw.set_montage(self.montage)
-            plot_overlay(raw, self.ica)
-        except Exception as e:
-            self.messagebox.setText("Unable to plot overlay because of error: " + str(e))
-            self.messagebox.exec()
+        raw = self.raw.copy()
+        raw.set_montage(self.montage)
+        plot_overlay(raw, self.ica)
         return()
 
     def plot_correlation_matrix(self):
