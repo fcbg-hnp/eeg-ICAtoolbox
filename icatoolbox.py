@@ -169,6 +169,7 @@ class MainWindow(Ui_MainWindow):
         """ Set montage from combobox list"""
         self.reset_variables()
         if str(montage) == "From data file":
+            self.montage = "From data file"
             self.apply_montage = False
             self.pushButton_openxz.setEnabled(False)
             self.lineEdit_xyz.setEnabled(False)
@@ -320,9 +321,9 @@ class MainWindow(Ui_MainWindow):
     def compute_ica(self):
         """Compute ica"""
         try:
-            raw = self.raw.copy()
             if self.apply_montage is True:
-                raw.set_montage(self.montage)
+                self.raw.set_montage(self.montage)
+            raw = self.raw.copy()
             ica = mne.preprocessing.ICA(n_components=self.ncomponents,
                                         method=self.method,
                                         random_state=self.seed,
@@ -389,22 +390,30 @@ class MainWindow(Ui_MainWindow):
 
     def plot_overlay(self):
         "Plot overlay"
-        raw = self.raw.copy()
-        plot_overlay(raw, self.ica)
+        try:
+            raw = self.raw.copy()
+            plot_overlay(raw, self.ica)
+        except Exception as e:
+            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
+            self.messagebox.exec()
         return()
 
     def plot_correlation_matrix(self):
         "Plot correlation_matrix"
-        raw = self.raw.copy()
-        ch_names = raw.info["ch_names"]
-        ica_template = mne.preprocessing.read_ica('template-ica.fif')
-        common = find_common_channels(ica_template, self.ica)
-        components_template, components_ics = extract_common_components(ica_template, self.ica)
-        templates = components_template[[0, 7]]
-        df = compute_correlation(templates, components_ics)
-        pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
-        quality = len(common) / len(ch_names)
-        plot_correlation(df, templates, pos, quality)
+        try:
+            raw = self.raw.copy()
+            ch_names = raw.info["ch_names"]
+            ica_template = mne.preprocessing.read_ica('template-ica.fif')
+            common = find_common_channels(ica_template, self.ica)
+            components_template, components_ics = extract_common_components(ica_template, self.ica)
+            templates = components_template[[0, 7]]
+            df = compute_correlation(templates, components_ics)
+            pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
+            quality = len(common) / len(ch_names)
+            plot_correlation(df, templates, pos, quality)
+        except Exception as e:
+            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
+            self.messagebox.exec()
         return()
 
     def apply_ica(self):
