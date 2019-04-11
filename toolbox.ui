@@ -60,22 +60,22 @@
          </property>
          <item>
           <property name="text">
+           <string>From data file</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>From xyz file</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>standard_1005</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>biosemi128</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
            <string>GSN-HydroCel-257</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>From file</string>
           </property>
          </item>
         </widget>
