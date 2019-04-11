@@ -321,9 +321,9 @@ class MainWindow(Ui_MainWindow):
     def compute_ica(self):
         """Compute ica"""
         try:
-            if self.apply_montage is True:
-                self.raw.set_montage(self.montage)
             raw = self.raw.copy()
+            if self.apply_montage is True:
+                raw.set_montage(self.montage)
             ica = mne.preprocessing.ICA(n_components=self.ncomponents,
                                         method=self.method,
                                         random_state=self.seed,
@@ -372,8 +372,11 @@ class MainWindow(Ui_MainWindow):
 
     def plot_sources(self):
         """Plot sources"""
+        raw = self.raw.copy()
+        if self.apply_montage is True:
+            raw.set_montage(self.montage)
         try:
-            self.ica.plot_sources(self.raw, block=True)
+            self.ica.plot_sources(raw, block=True)
         except Exception as e:
             self.messagebox.setText("Unable to plot sources because of error: " + str(e))
             self.messagebox.exec()
@@ -381,8 +384,13 @@ class MainWindow(Ui_MainWindow):
 
     def plot_topomaps(self):
         """Plot topomaps"""
+        raw = self.raw.copy()
+        print(self.apply_montage)
+        if self.apply_montage is True:
+            print(self.montage)
+            raw.set_montage(self.montage)
         try:
-            self.ica.plot_components(inst=self.raw)
+            self.ica.plot_components(inst=raw)
         except Exception as e:
             self.messagebox.setText("Unable to plot components because of error: " + str(e))
             self.messagebox.exec()
@@ -402,6 +410,8 @@ class MainWindow(Ui_MainWindow):
         "Plot correlation_matrix"
         try:
             raw = self.raw.copy()
+            if self.apply_montage is True:
+                raw.set_montage(self.montage)
             ch_names = raw.info["ch_names"]
             ica_template = mne.preprocessing.read_ica('template-ica.fif')
             common = find_common_channels(ica_template, self.ica)
