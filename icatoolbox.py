@@ -126,7 +126,7 @@ class MainWindow(Ui_MainWindow):
         try:
             self.n_channels = None
             self.Raw = None
-            filter = "Raw fif(*-raw.fif);;Raw sef (*.sef);;Epochs fif(*-epo.fif)""
+            filter = "Raw fif(*-raw.fif);;Raw sef (*.sef);;Epochs fif(*-epo.fif)"
             self.fname_eeg, self.ext_eeg = self.Openfile_eeg.getOpenFileName(caption='Open file', filter=filter)
             QApplication.setOverrideCursor(Qt.WaitCursor)
             if self.ext_eeg == "Raw fif(*-raw.fif)":
