@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 from toolbox import Ui_MainWindow
 
-import numpy as np
 import mne
 import mne.channels
 from mne.channels.layout import _find_topomap_coords
@@ -133,6 +132,8 @@ class MainWindow(Ui_MainWindow):
                 self.raw = mne.io.read_raw_fif(self.fname_eeg, preload=True)
             elif self.ext_eeg == "Raw sef (*.sef)":
                 self.raw = read_sef(self.fname_eeg)
+            elif self.ext_eeg == "Epochs fif(*-epo.fif)":
+                self.raw = mne.read_epochs(self.fname_eeg, preload=True)
             self.lineEdit_eegfile.setText(self.fname_eeg)
             QApplication.restoreOverrideCursor()
         except Exception as e:

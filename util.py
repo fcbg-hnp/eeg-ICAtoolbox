@@ -28,29 +28,57 @@ def xyz_to_montage(path):
     return(montage)
 
 
-def compute_gfp(raw):
+def compute_gfp_raw(raw):
     return(np.mean(raw.get_data()**2, axis=0)**0.5)
 
 
+def compute_gfp_epoch(epochs):
+    return(np.mean(epochs.get_data()**2, axis=1)**0.5)
+
+
 def plot_overlay(raw, ica):
-    print(type(raw))
     """Custom plot overlay given fitted ica and raw"""
-    if type(raw) == 'mne.io.fiff.raw.Raw':
+    if type(raw) == mne.io.fiff.raw.Raw:
         raw_copy = raw.copy()
         ica.apply(raw_copy)
-        gfp_raw_signal = compute_gfp(raw)
-        gfp_raw_applied_signal = compute_gfp(raw_copy)
+        # Info
         sfreq = raw.info["sfreq"]
         ch_types = ['eeg', 'eeg']
         ch_names = ['before', 'after']
-        data = [gfp_raw_signal, gfp_raw_applied_signal]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-        raw = mne.io.RawArray(data, info)
         raw.info['bads'] = ["before"]
-        raw.plot(scalings="auto", n_channels=2, butterfly=True,
+        # Data
+        gfp_raw_signal = compute_gfp_raw(raw)
+        gfp_raw_applied_signal = compute_gfp_raw(raw_copy)
+        data = [gfp_raw_signal, gfp_raw_applied_signal]
+        # Raw
+        raw = mne.io.RawArray(data, info)
+        raw.plot(scalings="auto", n_channels=2, butterfly=True, decim=1,
                  block=True, bad_color=(1, 0, 0))
-    else:
-        pass
+    elif type(raw) == mne.epochs.EpochsFIF:
+        epochs = raw.copy()
+        ica.apply(epochs)
+        # Info
+        sfreq = epochs.info["sfreq"]
+        ch_types = ['eeg', 'eeg']
+        ch_names = ['before', 'after']
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+        # Data
+        gfp_epochs_signal = compute_gfp_epoch(raw)
+        print(gfp_epochs_signal.shape)
+        gfp_epochs_applied_signal = compute_gfp_epoch(epochs)
+        print(gfp_epochs_applied_signal.shape)
+        data = np.array([gfp_epochs_signal.T, gfp_epochs_applied_signal.T]).T
+        data = np.swapaxes(data, 1, 2)
+        print(data.shape)
+        # Epochs
+        events = epochs.events
+        tmin = epochs.tmin
+        event_id = epochs.event_id
+        epochsplot = mne.EpochsArray(data, info, events, tmin, event_id)
+        epochsplot.info['bads'] = ["before"]
+        epochsplot.plot(scalings="auto", n_channels=2, decim=1,
+                        block=True)
     return()
 
 
@@ -119,7 +147,7 @@ def plot_correlation(df, match_templates, pos, quality, head_pos=None):
     ax_matrix = fig.add_subplot(gs[7:11, :])
     sns.heatmap(dfp, linewidths=0.1, annot=False, ax=ax_matrix, cmap="YlGnBu",
                 vmin=0, vmax=1, square=False, cbar_ax=ax_colorbar,
-                cbar_kws={"orientation" :'horizontal'})
+                cbar_kws={"orientation": 'horizontal'})
     ax_matrix.set_ylabel('')
     ax_matrix.set_xlabel("Comparaison Quality: " + str(quality*100) + "%")
     plt.subplots_adjust(left=0.17, bottom=0.15,
