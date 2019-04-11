@@ -484,7 +484,6 @@ class MainWindow(Ui_MainWindow):
             self.label_save.setText("Saved. " + str(self.save_name))
             QApplication.processEvents()
             QApplication.restoreOverrideCursor()
-            self.comboBox_.activated[str].connect(self.set_montage_from_combobox)
         except Exception as e:
             self.label_save.setText(str(e))
             self.saved = False
