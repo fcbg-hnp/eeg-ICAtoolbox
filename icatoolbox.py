@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-
-# Form implementation generated from reading ui file '.\icatoolbox_v01.ui'
-#
-# Created by: PyQt5 UI code generator 5.11.3
-#
-# WARNING! All changes made in this file will be lost!
-
 from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt
 from toolbox import Ui_MainWindow
+
 import mne
 import mne.channels
+from mne.channels.layout import _find_topomap_coords
+
 from read import read_sef
-from util import xyz_to_montage, plot_overlay
+from util import xyz_to_montage, plot_correlation, plot_overlay,\
+                 compute_correlation, compute_head_pos, \
+                 extract_common_components, find_common_channels
 
 
 class MainWindow(Ui_MainWindow):
@@ -24,6 +24,7 @@ class MainWindow(Ui_MainWindow):
         self.raw = None
         self.n_channels = None
         self.montage = mne.channels.read_montage("standard_1005")
+        self.head_pos = compute_head_pos(self.montage)
         self.groupBox_advancedparameters.setChecked(False)
         self.collapse()
         self.Openfile_eeg = QtWidgets.QFileDialog(caption='Open file')
@@ -43,7 +44,7 @@ class MainWindow(Ui_MainWindow):
         self.label_maxiter.setToolTip("Maximum number of iterations during ICA fitting. \n If method does not converge after max_iter iteration, it stops and returns current solution. \n If method converge before max_iter, it stops and return the completed solution")
         self.label_randomseed.setToolTip("Random state to initialize ICA estimation for reproducible results.")
         self.label_ncomponents.setToolTip("Controls the number of PCA components from the pre-ICA PCA entering the ICA decomposition.\n Must be < to max_pca_components")
-        self.label_maxpcacomponents.setToolTip("The number of components returned by the pre-ICA PCA decomposition.\n Must be < to the number of channels")
+        self.label_maxpcacomponents.setToolTip("The number of components returned by the pre-ICA PCA decomposition.\n Must be <= to the number of channels")
         self.label_npcacomponents.setToolTip("The number of PCA components used for re-projecting the decomposed data into sensor space. \n Has to be >= n_components and <= max_pca_components.\n If greater than n_components_, the next n_pca_components minus n_components PCA components \n will be added before restoring the sensor space data.")
         return()
 
@@ -88,6 +89,7 @@ class MainWindow(Ui_MainWindow):
         self.pushButton_plotoverlay.clicked.connect(self.plot_overlay)
         self.pushButton_apply.clicked.connect(self.apply)
         self.pushButton_save.clicked.connect(self.save)
+        self.pushButton_plotcorrelationmatrix.clicked.connect(self.plot_correlation_matrix)
         return()
 
     def init_parameters(self):
@@ -123,13 +125,17 @@ class MainWindow(Ui_MainWindow):
         try:
             self.n_channels = None
             self.Raw = None
-            filter = "Raw fif(*-raw.fif);;Raw sef (*.sef)"
+            filter = "Raw fif(*-raw.fif);;Raw sef (*.sef);;Epochs fif(*-epo.fif)"
             self.fname_eeg, self.ext_eeg = self.Openfile_eeg.getOpenFileName(caption='Open file', filter=filter)
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             if self.ext_eeg == "Raw fif(*-raw.fif)":
                 self.raw = mne.io.read_raw_fif(self.fname_eeg, preload=True)
             elif self.ext_eeg == "Raw sef (*.sef)":
                 self.raw = read_sef(self.fname_eeg)
+            elif self.ext_eeg == "Epochs fif(*-epo.fif)":
+                self.raw = mne.read_epochs(self.fname_eeg, preload=True)
             self.lineEdit_eegfile.setText(self.fname_eeg)
+            QApplication.restoreOverrideCursor()
         except Exception as e:
             self.messagebox.setText(str(e))
             self.messagebox.exec()
@@ -140,7 +146,6 @@ class MainWindow(Ui_MainWindow):
         try:
             self.Openfile_xyz = QtWidgets.QFileDialog(caption='Open file')
             self.fname_xyz, self.ext_xyz = self.Openfile_xyz.getOpenFileName(caption='Open file', filter="*.xyz")
-            print(self.ext_xyz)
             if self.ext_xyz == "*.xyz":
                 self.set_montage_from_file()
             self.lineEdit_xyz.setText(self.fname_xyz)
@@ -153,8 +158,11 @@ class MainWindow(Ui_MainWindow):
     def set_montage_from_file(self):
         """Set montage to the one contained in the file"""
         self.reset_variables()
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.montage = xyz_to_montage(self.fname_xyz)
-        QtWidgets.QApplication.processEvents()
+        self.head_pos = compute_head_pos(self.montage)
+        QApplication.restoreOverrideCursor()
+        QApplication.processEvents()
         self.valid_inputs()
         return()
 
@@ -165,13 +173,16 @@ class MainWindow(Ui_MainWindow):
             self.pushButton_openxz.setEnabled(False)
             self.lineEdit_xyz.setEnabled(False)
             self.montage = mne.channels.read_montage(montage)
+            self.head_pos = compute_head_pos(self.montage)
             self.lineEdit_xyz.setText("")
             self.fname_xyz = None
             self.ext_xyz = None
+
         else:
             self.pushButton_openxz.setEnabled(True)
             self.lineEdit_xyz.setEnabled(True)
             self.montage = None
+            self.head_po = None
             self.lineEdit_xyz.setText("")
             self.fname_xyz = None
             self.ext_xyz = None
@@ -303,7 +314,7 @@ class MainWindow(Ui_MainWindow):
     def compute_ica(self):
         """Compute ica"""
         try:
-            raw = self.raw
+            raw = self.raw.copy()
             raw.set_montage(self.montage)
             ica = mne.preprocessing.ICA(n_components=self.ncomponents,
                                         method=self.method,
@@ -311,8 +322,7 @@ class MainWindow(Ui_MainWindow):
                                         max_iter=self.maxiter,
                                         max_pca_components=self.maxpcacomponents,
                                         n_pca_components=self.npcacomponents)
-            picks = mne.pick_types(raw.info, meg=True, eeg=True,
-                                   eog=True, exclude='bads')
+            picks = mne.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
             print(self.ncomponents, self.method, self.seed, self.maxiter,
                   self.maxpcacomponents, self.npcacomponents, self.montage, self.raw)
             ica.fit(raw, picks=picks, decim=1)
@@ -334,6 +344,7 @@ class MainWindow(Ui_MainWindow):
 
     def compute(self):
         """Compute ica and update GUI"""
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.applied = False
         self.saved = False
         self.clean_raw = None
@@ -343,19 +354,20 @@ class MainWindow(Ui_MainWindow):
         self.activate_groupbox_apply()
         self.activate_groupbox_save()
         self.label_compute.setText("Computing... This may take a while")
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
         self.compute_ica()
         self.update_compute_label()
         self.activate_groupbox_plot()
         self.activate_groupbox_apply()
+        QApplication.restoreOverrideCursor()
         return()
 
     def plot_sources(self):
         """Plot sources"""
         try:
-            self.ica.plot_sources(self.raw)
+            self.ica.plot_sources(self.raw, block=True)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
+            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
             self.messagebox.exec()
         return()
 
@@ -364,17 +376,32 @@ class MainWindow(Ui_MainWindow):
         try:
             self.ica.plot_components(inst=self.raw)
         except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
+            self.messagebox.setText("Unable to plot components because of error: " + str(e))
             self.messagebox.exec()
         return()
 
     def plot_overlay(self):
         "Plot overlay"
-        try:
-            plot_overlay(self.raw, self.ica)
-        except Exception as e:
-            self.messagebox.setText("Unable to compute ica because of error: " + str(e))
-            self.messagebox.exec()
+        raw = self.raw.copy()
+        raw.set_montage(self.montage)
+        plot_overlay(raw, self.ica)
+        return()
+
+    def plot_correlation_matrix(self):
+        "Plot correlation_matrix"
+        raw = self.raw.copy()
+        ch_names = raw.info["ch_names"]
+        raw.set_montage(self.montage)
+        ica_template = mne.preprocessing.read_ica('template-ica.fif')
+        common = find_common_channels(ica_template, self.ica)
+
+        components_template, components_ics = extract_common_components(ica_template, self.ica)
+        templates = components_template[[0, 7]]
+        df = compute_correlation(templates, components_ics)
+        pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
+        #pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(ch_names)) if ch_names[i].lower() in common])
+        quality = len(common) / len(ch_names)
+        plot_correlation(df, templates, pos, quality)
         return()
 
     def apply_ica(self):
@@ -387,20 +414,23 @@ class MainWindow(Ui_MainWindow):
     def update_apply_label(self):
         """Update apply label info"""
         if self.applied is True:
-            self.label_apply.setText("Done   " + str(self.nout) + " components rejected")
+            self.label_apply.setText("Done " + str(self.nout) + " components rejected")
         else:
             self.label_apply.setText("None")
         return()
 
     def apply(self):
         """Apply ica and update GUI"""
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self.label_apply.setText("Computing... This may take a while")
         self.nout = len(self.ica.exclude)
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
         self.apply_ica()
         self.applied = True
         self.update_apply_label()
         self.activate_groupbox_save()
+        QApplication.restoreOverrideCursor()
+        return()
 
     def activate_groupbox_save(self):
         """Enable save groupbox if ica is applied"""
@@ -416,7 +446,7 @@ class MainWindow(Ui_MainWindow):
             self.label_save.setText("Saved. " + str(self.fsave))
         else:
             self.label_save.setText("None")
-        QtWidgets.QApplication.processEvents()
+        QApplication.processEvents()
         return()
 
     def generate_fname(self):
@@ -428,14 +458,16 @@ class MainWindow(Ui_MainWindow):
         self.generate_fname()
         try:
             self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-raw.fif"), filter="*-raw.fif")[0]
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             self.clean_raw.save(self.save_name, overwrite=True)
             self.saved = True
             self.label_save.setText("Saved. " + str(self.save_name))
-            QtWidgets.QApplication.processEvents()
+            QApplication.processEvents()
+            QApplication.restoreOverrideCursor()
         except Exception as e:
             self.label_save.setText(str(e))
             self.saved = False
             self.label_save.setText(str(e))
-            QtWidgets.QApplication.processEvents()
+            QApplication.processEvents()
 
         return()
