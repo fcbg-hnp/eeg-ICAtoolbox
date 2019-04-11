@@ -33,20 +33,24 @@ def compute_gfp(raw):
 
 
 def plot_overlay(raw, ica):
+    print(type(raw))
     """Custom plot overlay given fitted ica and raw"""
-    raw_copy = raw.copy()
-    ica.apply(raw_copy)
-    gfp_raw_signal = compute_gfp(raw)
-    gfp_raw_applied_signal = compute_gfp(raw_copy)
-    sfreq = raw.info["sfreq"]
-    ch_types = ['eeg', 'eeg']
-    ch_names = ['before', 'after']
-    data = [gfp_raw_signal, gfp_raw_applied_signal]
-    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-    raw = mne.io.RawArray(data, info)
-    raw.info['bads'] = ["before"]
-    raw.plot(scalings="auto", n_channels=2, butterfly=True,
-             block=True, bad_color=(1, 0, 0))
+    if type(raw) == 'mne.io.fiff.raw.Raw':
+        raw_copy = raw.copy()
+        ica.apply(raw_copy)
+        gfp_raw_signal = compute_gfp(raw)
+        gfp_raw_applied_signal = compute_gfp(raw_copy)
+        sfreq = raw.info["sfreq"]
+        ch_types = ['eeg', 'eeg']
+        ch_names = ['before', 'after']
+        data = [gfp_raw_signal, gfp_raw_applied_signal]
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+        raw = mne.io.RawArray(data, info)
+        raw.info['bads'] = ["before"]
+        raw.plot(scalings="auto", n_channels=2, butterfly=True,
+                 block=True, bad_color=(1, 0, 0))
+    else:
+        pass
     return()
 
 
