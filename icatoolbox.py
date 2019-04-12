@@ -11,7 +11,7 @@ from mne.channels.layout import _find_topomap_coords
 from read import read_sef
 from util import xyz_to_montage, plot_correlation, plot_overlay,\
                  compute_correlation, \
-                 extract_common_components, find_common_channels
+                 extract_common_components, find_common_channels, tolow
 
 
 class MainWindow(Ui_MainWindow):
@@ -418,6 +418,8 @@ class MainWindow(Ui_MainWindow):
             components_template, components_ics = extract_common_components(ica_template, self.ica)
             templates = components_template[[0, 7]]
             df = compute_correlation(templates, components_ics)
+            raw.rename_channels(tolow)
+            raw.reorder_channels(common)
             pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
             quality = len(common) / len(ch_names)
             plot_correlation(df, templates, pos, quality)

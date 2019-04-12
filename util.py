@@ -193,3 +193,7 @@ def plot_correlation(df, match_templates, pos, quality, head_pos=None):
                         wspace=None, hspace=None)
     plt.show(fig)
     return()
+
+
+def tolow(s):
+    return(s.lower())
