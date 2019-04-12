@@ -10,7 +10,7 @@ from mne.channels.layout import _find_topomap_coords
 
 from read import read_sef
 from util import xyz_to_montage, plot_correlation, plot_overlay,\
-                 compute_correlation, compute_head_pos, \
+                 compute_correlation, \
                  extract_common_components, find_common_channels
 
 
@@ -23,8 +23,8 @@ class MainWindow(Ui_MainWindow):
         self.lineEdit_xyz.setEnabled(False)
         self.raw = None
         self.n_channels = None
-        self.montage = mne.channels.read_montage("standard_1005")
-        self.head_pos = compute_head_pos(self.montage)
+        self.montage = "From data file"
+        self.apply_montage = False
         self.groupBox_advancedparameters.setChecked(False)
         self.collapse()
         self.Openfile_eeg = QtWidgets.QFileDialog(caption='Open file')
@@ -160,7 +160,6 @@ class MainWindow(Ui_MainWindow):
         self.reset_variables()
         QApplication.setOverrideCursor(Qt.WaitCursor)
         self.montage = xyz_to_montage(self.fname_xyz)
-        self.head_pos = compute_head_pos(self.montage)
         QApplication.restoreOverrideCursor()
         QApplication.processEvents()
         self.valid_inputs()
@@ -169,20 +168,28 @@ class MainWindow(Ui_MainWindow):
     def set_montage_from_combobox(self, montage):
         """ Set montage from combobox list"""
         self.reset_variables()
-        if str(montage) != "From file":
+        if str(montage) == "From data file":
+            self.montage = "From data file"
+            self.apply_montage = False
             self.pushButton_openxz.setEnabled(False)
             self.lineEdit_xyz.setEnabled(False)
-            self.montage = mne.channels.read_montage(montage)
-            self.head_pos = compute_head_pos(self.montage)
             self.lineEdit_xyz.setText("")
             self.fname_xyz = None
             self.ext_xyz = None
 
-        else:
+        elif str(montage) == "From xyz file":
             self.pushButton_openxz.setEnabled(True)
             self.lineEdit_xyz.setEnabled(True)
             self.montage = None
-            self.head_po = None
+            self.lineEdit_xyz.setText("")
+            self.fname_xyz = None
+            self.ext_xyz = None
+            self.apply_montage = True
+        else:
+            self.pushButton_openxz.setEnabled(False)
+            self.lineEdit_xyz.setEnabled(False)
+            self.montage = mne.channels.read_montage(montage)
+            self.apply_montage = True
             self.lineEdit_xyz.setText("")
             self.fname_xyz = None
             self.ext_xyz = None
@@ -315,7 +322,8 @@ class MainWindow(Ui_MainWindow):
         """Compute ica"""
         try:
             raw = self.raw.copy()
-            raw.set_montage(self.montage)
+            if self.apply_montage is True:
+                raw.set_montage(self.montage)
             ica = mne.preprocessing.ICA(n_components=self.ncomponents,
                                         method=self.method,
                                         random_state=self.seed,
@@ -364,8 +372,11 @@ class MainWindow(Ui_MainWindow):
 
     def plot_sources(self):
         """Plot sources"""
+        raw = self.raw.copy()
+        if self.apply_montage is True:
+            raw.set_montage(self.montage)
         try:
-            self.ica.plot_sources(self.raw, block=True)
+            self.ica.plot_sources(raw, block=True)
         except Exception as e:
             self.messagebox.setText("Unable to plot sources because of error: " + str(e))
             self.messagebox.exec()
@@ -373,8 +384,13 @@ class MainWindow(Ui_MainWindow):
 
     def plot_topomaps(self):
         """Plot topomaps"""
+        raw = self.raw.copy()
+        print(self.apply_montage)
+        if self.apply_montage is True:
+            print(self.montage)
+            raw.set_montage(self.montage)
         try:
-            self.ica.plot_components(inst=self.raw)
+            self.ica.plot_components(inst=raw)
         except Exception as e:
             self.messagebox.setText("Unable to plot components because of error: " + str(e))
             self.messagebox.exec()
@@ -382,26 +398,32 @@ class MainWindow(Ui_MainWindow):
 
     def plot_overlay(self):
         "Plot overlay"
-        raw = self.raw.copy()
-        raw.set_montage(self.montage)
-        plot_overlay(raw, self.ica)
+        try:
+            raw = self.raw.copy()
+            plot_overlay(raw, self.ica)
+        except Exception as e:
+            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
+            self.messagebox.exec()
         return()
 
     def plot_correlation_matrix(self):
         "Plot correlation_matrix"
-        raw = self.raw.copy()
-        ch_names = raw.info["ch_names"]
-        raw.set_montage(self.montage)
-        ica_template = mne.preprocessing.read_ica('template-ica.fif')
-        common = find_common_channels(ica_template, self.ica)
-
-        components_template, components_ics = extract_common_components(ica_template, self.ica)
-        templates = components_template[[0, 7]]
-        df = compute_correlation(templates, components_ics)
-        pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
-        #pos = np.array([raw.info["chs"][i]["loc"][0:2] for i in range(0, len(ch_names)) if ch_names[i].lower() in common])
-        quality = len(common) / len(ch_names)
-        plot_correlation(df, templates, pos, quality)
+        try:
+            raw = self.raw.copy()
+            if self.apply_montage is True:
+                raw.set_montage(self.montage)
+            ch_names = raw.info["ch_names"]
+            ica_template = mne.preprocessing.read_ica('template-ica.fif')
+            common = find_common_channels(ica_template, self.ica)
+            components_template, components_ics = extract_common_components(ica_template, self.ica)
+            templates = components_template[[0, 7]]
+            df = compute_correlation(templates, components_ics)
+            pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
+            quality = len(common) / len(ch_names)
+            plot_correlation(df, templates, pos, quality)
+        except Exception as e:
+            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
+            self.messagebox.exec()
         return()
 
     def apply_ica(self):
@@ -451,13 +473,21 @@ class MainWindow(Ui_MainWindow):
 
     def generate_fname(self):
         """Generate default saving file name based o input file"""
-        self.save_name = self.fname_eeg[0:-len(self.ext_eeg)]
+        if self.ext_eeg == "Raw fif(*-raw.fif)":
+            self.save_name = self.fname_eeg[0:-8]
+        elif self.ext_eeg == "Epochs fif(*-epo.fif)":
+            self.save_name = self.fname_eeg[0:-8]
+        elif self.ext_eeg == "Raw sef (*.sef)":
+            self.save_name = self.fname_eeg[0:-4]
 
     def save(self):
         """Save file"""
         self.generate_fname()
         try:
-            self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-raw.fif"), filter="*-raw.fif")[0]
+            if self.ext_eeg == "Raw fif(*-raw.fif)" or self.ext_eeg == "Raw sef (*.sef)":
+                self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-raw.fif"), filter="*-raw.fif")[0]
+            elif self.ext_eeg == "Epochs fif(*-epo.fif)":
+                self.save_name = self.Openfile_eeg.getSaveFileName(directory=(self.save_name + "_ica-epo.fif"), filter="*-epo.fif")[0]
             QApplication.setOverrideCursor(Qt.WaitCursor)
             self.clean_raw.save(self.save_name, overwrite=True)
             self.saved = True
