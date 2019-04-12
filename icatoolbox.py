@@ -11,7 +11,7 @@ from mne.channels.layout import _find_topomap_coords
 from read import read_sef
 from util import xyz_to_montage, plot_correlation, plot_overlay,\
                  compute_correlation, \
-                 extract_common_components, find_common_channels
+                 extract_common_components, find_common_channels_in_ica
 
 
 class MainWindow(Ui_MainWindow):
@@ -413,14 +413,29 @@ class MainWindow(Ui_MainWindow):
             if self.apply_montage is True:
                 raw.set_montage(self.montage)
             ch_names = raw.info["ch_names"]
+            """
             ica_template = mne.preprocessing.read_ica('template-ica.fif')
-            common = find_common_channels(ica_template, self.ica)
+            common = find_common_channels_in_ica(ica_template, self.ica)
             components_template, components_ics = extract_common_components(ica_template, self.ica)
             templates = components_template[[0, 7]]
-            df = compute_correlation(templates, components_ics)
+            df = compute_correlation(templates, components_ics)"""
+            csv = r"C:\Users\vferat\desktop\artificial_blink.csv"
+            from util import csv_ica_to_df
+            ica = self.ica
+            df , common, component_template = csv_ica_to_df(csv,ica)
+            from util import tolow
+            raw.rename_channels(tolow)
+            raw.reorder_channels(common)
             pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
+            print(raw.info["ch_names"])
+            print([ch_names[i] for i in range(len(ch_names)) if ch_names[i].lower() in common])
             quality = len(common) / len(ch_names)
-            plot_correlation(df, templates, pos, quality)
+            import matplotlib.pyplot as plt
+            plt.figure()
+            for i in range(0, len(pos)):
+                plt.text(pos[i, 0], pos[i, 1], common[i])
+            plt.show()
+            plot_correlation(df, component_template, pos, quality)
         except Exception as e:
             self.messagebox.setText("Unable to plot sources because of error: " + str(e))
             self.messagebox.exec()

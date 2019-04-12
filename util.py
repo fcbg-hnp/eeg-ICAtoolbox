@@ -3,18 +3,11 @@ import scipy
 import pandas as pd
 import mne
 import seaborn as sns
+import pandas
 import matplotlib.pyplot as plt
 from mne.channels import Montage
 from mne.viz.topomap import _plot_topomap
 from matplotlib.gridspec import GridSpec
-
-
-def compute_head_pos(montage):
-    pos = montage.get_pos2d()
-    scale = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
-    center = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
-    head_pos = {'scale': scale, 'center': center}
-    return(head_pos)
 
 
 def xyz_to_montage(path):
@@ -120,27 +113,41 @@ def plot_overlay(raw, ica):
     return()
 
 
-def find_common_channels(ica_a, ica_b):
+def find_common_channels_in_list(list_a, list_b):
     """Find ch_names shared between 2 ica objects"""
-    ch_names_a = [ch.lower() for ch in ica_a.ch_names]
-    ch_names_b = [ch.lower() for ch in ica_b.ch_names]
+    ch_names_a = [ch.lower() for ch in list_a]
+    ch_names_b = [ch.lower() for ch in list_b]
     common = [x for x in ch_names_a if x in ch_names_b]
     return(common)
 
 
-def find_index_by_name(names, ica):
-    ch_names = [ch.lower() for ch in ica.ch_names]
+def find_common_channels_in_ica(ica_a, ica_b):
+    """Find ch_names shared between 2 ica objects"""
+    ch_names_a = [ch.lower() for ch in ica_a.ch_names]
+    ch_names_b = [ch.lower() for ch in ica_b.ch_names]
+    common = find_common_channels_in_list(ch_names_a, ch_names_b)
+    return(common)
+
+
+def find_index_by_name_in_list(names, myList):
+    myList = [ch.lower() for ch in myList]
     Index = []
     for name in names:
-        idx = ch_names.index(name)
+        idx = myList.index(name)
         Index.append(idx)
     return(Index)
 
 
+def find_index_by_name_in_ica(names, ica):
+    ch_names = [ch for ch in ica.ch_names]
+    Index = find_index_by_name_in_list(names, ch_names)
+    return(Index)
+
+
 def extract_common_components(ica_a, ica_b):
-    common = find_common_channels(ica_a, ica_b)
-    idx_a = find_index_by_name(common, ica_a)
-    idx_b = find_index_by_name(common, ica_b)
+    common = find_common_channels_in_ica(ica_a, ica_b)
+    idx_a = find_index_by_name_in_ica(common, ica_a)
+    idx_b = find_index_by_name_in_ica(common, ica_b)
     components_a = ica_a.get_components()[idx_a]
     components_b = ica_b.get_components()[idx_b]
     return(components_a.T, components_b.T)
@@ -193,3 +200,29 @@ def plot_correlation(df, match_templates, pos, quality, head_pos=None):
                         wspace=None, hspace=None)
     plt.show(fig)
     return()
+
+
+def read_template_from_csv(path):
+    """Convert xyz positions to a mne montage type"""
+    df = pandas.read_csv(path, sep=';', header=None, names=["weight", "ch_names"])
+    ch_names = df["ch_names"].values.tolist()
+    ch_names = [str(ch) for ch in ch_names]
+    component = df["weight"].values.tolist()
+    return(ch_names, component)
+
+
+def csv_ica_to_df(csv,ica):
+    ch_names, component = read_template_from_csv(csv)
+    common = find_common_channels_in_list(ch_names, ica.ch_names)
+    idx_template = find_index_by_name_in_list(common, ch_names)
+    component_template = np.array([component][0]).astype(np.float)
+    component_template = np.array([component_template[idx_template]])
+    idx = find_index_by_name_in_ica(common, ica)
+    print(np.array(ica.ch_names)[idx])
+    components_ica = (ica.get_components()[idx]).T
+    df = compute_correlation(component_template, components_ica)
+    return(df, common, component_template)
+
+
+def tolow(s):
+    return(s.lower())
