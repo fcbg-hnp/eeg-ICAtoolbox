@@ -398,34 +398,30 @@ class MainWindow(Ui_MainWindow):
 
     def plot_overlay(self):
         "Plot overlay"
-        try:
-            raw = self.raw.copy()
-            plot_overlay(raw, self.ica)
-        except Exception as e:
-            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
-            self.messagebox.exec()
+        raw = self.raw.copy()
+        plot_overlay(raw, self.ica)
+        self.messagebox.setText("Unable to plot sources because of error: " + str(e))
+        self.messagebox.exec()
         return()
 
     def plot_correlation_matrix(self):
         "Plot correlation_matrix"
-        try:
-            raw = self.raw.copy()
-            if self.apply_montage is True:
-                raw.set_montage(self.montage)
-            ch_names = raw.info["ch_names"]
-            ica_template = mne.preprocessing.read_ica('template-ica.fif')
-            common = find_common_channels(ica_template, self.ica)
-            components_template, components_ics = extract_common_components(ica_template, self.ica)
-            templates = components_template[[0, 7]]
-            df = compute_correlation(templates, components_ics)
-            raw.rename_channels(tolow)
-            raw.reorder_channels(common)
-            pos = _find_topomap_coords(raw.info, picks=[i for i in range(len(ch_names)) if ch_names[i].lower() in common])
-            quality = len(common) / len(ch_names)
-            plot_correlation(df, templates, pos, quality)
-        except Exception as e:
-            self.messagebox.setText("Unable to plot sources because of error: " + str(e))
-            self.messagebox.exec()
+        raw = self.raw.copy()
+        if self.apply_montage is True:
+            raw.set_montage(self.montage)
+        ch_names = raw.info["ch_names"]
+        ica_template = mne.preprocessing.read_ica('template-ica.fif')
+        common = find_common_channels(ica_template, self.ica)
+        components_template, components_ics = extract_common_components(ica_template, self.ica)
+        templates = components_template[[0, 7]]
+        df = compute_correlation(templates, components_ics)
+        raw.rename_channels(tolow)
+        raw.reorder_channels(common)
+        ch_names = raw.info["ch_names"]
+        picks = [i for i in range(len(ch_names)) if ch_names[i].lower() in common]
+        pos = _find_topomap_coords(raw.info, picks=picks)
+        quality = len(common) / len(ch_names)
+        plot_correlation(df, templates, pos, quality)
         return()
 
     def apply_ica(self):
