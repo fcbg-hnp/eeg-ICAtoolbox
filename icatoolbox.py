@@ -489,11 +489,11 @@ class MainWindow(Ui_MainWindow):
             self.saved = True
             self.label_save.setText("Saved. " + str(self.save_name))
             QApplication.processEvents()
-            QApplication.restoreOverrideCursor()
         except Exception as e:
             self.label_save.setText(str(e))
             self.saved = False
             self.label_save.setText(str(e))
             QApplication.processEvents()
+        QApplication.restoreOverrideCursor()
 
         return()
