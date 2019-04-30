@@ -400,8 +400,6 @@ class MainWindow(Ui_MainWindow):
         "Plot overlay"
         raw = self.raw.copy()
         plot_overlay(raw, self.ica)
-        self.messagebox.setText("Unable to plot sources because of error: " + str(e))
-        self.messagebox.exec()
         return()
 
     def plot_correlation_matrix(self):
