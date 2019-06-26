@@ -1,4 +1,6 @@
-# ICA toolbox GUI
+# ICA toolbox GUI - DEPRECATED
+
+## This repository is out of date. If you want to use this toolbox, we strongly advise you to use [MNELAB](https://github.com/fcbg-hnp/mnelab), which includes all the feature.
 
 # Description
 
